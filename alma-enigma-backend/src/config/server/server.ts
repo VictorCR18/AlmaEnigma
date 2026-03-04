@@ -1,4 +1,4 @@
-import app from "@/app/app"; // Mantendo o seu padrão de importação com alias
+import app from "../../app/app"; // Mantendo o seu padrão de importação com alias
 import http from "http";
 import { Server } from "socket.io";
 
@@ -27,7 +27,7 @@ io.on("connection", (socket) => {
   socket.on("join_room", (roomCode) => {
     socket.join(roomCode);
     console.log(`Jogador ${socket.id} entrou na sala: ${roomCode}`);
-    
+
     // Avisa todos da sala (menos quem acabou de entrar)
     socket.to(roomCode).emit("player_joined", { playerId: socket.id });
   });
