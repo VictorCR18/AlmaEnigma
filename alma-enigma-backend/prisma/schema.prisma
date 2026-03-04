@@ -1,0 +1,109 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ------------------------------------------------------
+// 1. USUÁRIOS E AUTENTICAÇÃO
+// ------------------------------------------------------
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  // E-mail e senha opcionais para permitir jogadores "Guest" (anônimos)
+  email     String?  @unique
+  password  String?
+  almas     Int      @default(3) // Moeda/Vidas do jogo AlmaEnigma
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relações
+  soloGames    SoloGame[]
+  matchHistory MatchPlayer[]
+  matchesWon   Match[]       @relation("MatchWinner")
+}
+
+// ------------------------------------------------------
+// 2. O CONTEÚDO DO JOGO
+// ------------------------------------------------------
+model Enigma {
+  id          String   @id @default(uuid())
+  pergunta    String // A charada, dica ou link de imagem
+  resposta    String // A palavra a ser adivinhada
+  dificuldade Int      @default(1) // Ex: 1 (Fácil), 2 (Médio), 3 (Difícil)
+  createdAt   DateTime @default(now())
+
+  // Registro de onde esse enigma já foi usado
+  soloGames SoloGameEnigma[]
+}
+
+// ------------------------------------------------------
+// 3. MODO SINGLEPLAYER (Campanha/Sobrevivência)
+// ------------------------------------------------------
+model SoloGame {
+  id             String     @id @default(uuid())
+  userId         String
+  user           User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pontuacao      Int        @default(0)
+  almasRestantes Int        @default(3)
+  status         GameStatus @default(IN_PROGRESS)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  enigmasJogados SoloGameEnigma[]
+}
+
+// Tabela auxiliar para garantir que o jogador não pegue o mesmo enigma duas vezes na mesma partida
+model SoloGameEnigma {
+  id         String   @id @default(uuid())
+  soloGameId String
+  soloGame   SoloGame @relation(fields: [soloGameId], references: [id], onDelete: Cascade)
+  enigmaId   String
+  enigma     Enigma   @relation(fields: [enigmaId], references: [id], onDelete: Cascade)
+  acertou    Boolean // Se ele acertou ou se perdeu uma alma aqui
+  createdAt  DateTime @default(now())
+
+  @@unique([soloGameId, enigmaId]) // Regra de unicidade
+}
+
+// ------------------------------------------------------
+// 4. MODO MULTIPLAYER (Histórico de Salas)
+// ------------------------------------------------------
+// O estado em TEMPO REAL da partida viverá na memória (WebSockets).
+// Esta tabela serve apenas para salvar o RESULTADO final da sala.
+model Match {
+  id         String     @id @default(uuid())
+  roomCode   String     @unique // Ex: "A7X9"
+  status     GameStatus @default(IN_PROGRESS)
+  winnerId   String?
+  winner     User?      @relation("MatchWinner", fields: [winnerId], references: [id])
+  createdAt  DateTime   @default(now())
+  finishedAt DateTime?
+
+  players MatchPlayer[]
+}
+
+// Tabela de junção entre os jogadores e as partidas multiplayer
+model MatchPlayer {
+  id        String   @id @default(uuid())
+  matchId   String
+  match     Match    @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pontuacao Int      @default(0)
+  joinedAt  DateTime @default(now())
+
+  @@unique([matchId, userId]) // Um usuário só pode entrar uma vez na mesma partida
+}
+
+enum GameStatus {
+  IN_PROGRESS
+  FINISHED
+  ABANDONED
+}
