@@ -2,7 +2,7 @@ import app from "../../app/app"; // Mantendo o seu padrão de importação com a
 import http from "http";
 import { Server } from "socket.io";
 
-const PORT = process.env.PORT || 3001;
+const PORT = process.env.PORT || 3000;
 
 // 1. Cria o servidor HTTP nativo envelopando o seu App do Express
 const httpServer = http.createServer(app);

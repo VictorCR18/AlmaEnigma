@@ -4,9 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "ts-node -r tsconfig-paths/register api/index.ts",
+    "start": "node dist/config/server/server.js",
     "build": "tsc && tsc-alias",
-    "start": "node dist/api/index.js",
     "postinstall": "prisma generate",
     "vercel-build": "prisma generate && tsc && tsc-alias"
   },
